@@ -30,10 +30,6 @@ public boolean persist(String name, String surname) throws SQLException {
 }
 ```
 
-## Motivation
-
-A short description of the motivation behind the creation and maintenance of the project. This should explain **why** the project exists.
-
 ## Installation
 
 Per la parte dei sorgenti Java è possibile utilizzare questo progetto
