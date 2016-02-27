@@ -1,0 +1,269 @@
+= Esercitazione su JDBC
+Cristian Lucchesi <cristian.lucchesi@gmail.com>
+2016-02-19
+:source-highlighter: highlightjs
+:backend: revealjs
+:revealjs_theme: night
+:revealjs_slideNumber: true
+
+== Preparazione ambiente di sviluppo
+
+Strumenti utilizzati nell'esercitazione:
+
+ * Java 8 -> http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
+ * Editor Eclipse -> http://www.eclipse.org
+ * Maven -> https://maven.apache.org
+ * Database h2 -> http://www.h2database.com/
+
+Gli strumenti sono disponibili nelle penne USB.
+
+== Esercitazione su Java e JDBC
+
+Creazione di una applicazione *anagrafica*.
+
+Passi principali:
+[%step]
+* Creazione di un progetto Java + Maven
+* Connessione al Database
+* Creazione della tabella
+* Definizione di un Data Access Object (DAO)
+* Lettura dalla tabella
+* Interfaccia command line per la gestione dei dati
+* Metodi di inserimento/modifica/creazione
+
+== Creazione del progetto
+
+[%step]
+* in Eclipse -> file -> New -> Maven Project
+** selezionare "Create a simple project (skip archetype selection)
+** "Group id:" -> "tutorial.jdbc"
+** "Artifact id:" -> "jdbc-training"
+** lasciare vuoti gli altri parametri
+
+== Configurazione dipendenze
+
+[%step]
+* Aprire il pom.xml
+* Andare nella scheda *Depencencies*
+** Selezionare *Add...*
+** cercare h2database
+** selezionare la versione 1.4.191 [jar]
+** salvare e verificare la presenza del jar selezionato in *Maven Dependencies*
+
+== Creazione classe per connessione al db
+
+[%step]
+* creare un package *training.jdbc* dentro source folder *src/main/java*
+** tasto destro sul source folder *src/main/java* -> *new*
+** cercare package
+** inserire come nome *training.jdbc*
+* creare la classe *DBConfig* nel package precedentemente creato
+** file -> new -> other e cercare Class
+
+== Parametri e connessione DB
+
+[[app-listing]]
+[source,java]
+.DBConfig.java
+----
+import java.sql.*
+
+include::{sourcedir}/tutorial/jdbc/DBConfig.java[lines=14..25]
+----
+
+== Creazione tabella Person
+* scrivere una classe con main che crei un tabella employees (id,
+name, surname)
+[source,sql]
+----
+CREATE TABLE employees (
+ id SERIAL NOT NULL PRIMARY KEY,
+ name VARCHAR(255), surname VARCHAR(255)
+)
+----
+
+== Creazione tabella Person^(2)^
+[[app-listing]]
+[source,java]
+.DBCreator.java
+----
+import java.sql.*
+include::{sourcedir}/tutorial/jdbc/DBCreator.java[lines=15..22;25..35]
+----
+
+== Definizione Bean Employee
+* Definire una classe Employee
+** che contenga un campo id, name e surnme
+** un metodo toString che stampi "nome cognome (id='id')"
+** inserirla nel package *training.jdbc*
+
+== Definizione Bean Employee^(2)^
+[[app-listing]]
+[source,java]
+.Employee.java
+----
+import lombok.Data;
+import lombok.Builder;
+include::{sourcedir}/tutorial/jdbc/Employee.java[lines=13..24]
+----
+* Lombok (http://projectlombok.org)
+* @Data aggiunge getter,setter,equals,hashcode,..
+* @Builder aggiunge metodi del pattern *Builder*
+
+== Utilizzo @Builder
+[source,java]
+----
+import lombok.Builder;
+@Builder
+public class Employee {
+//..
+}
+----
+----
+Employee.builder()
+  .id(rs.getInt("id"))
+  .name(rs.getString("name"))
+  .surname(rs.getString("surname"))
+  .build());
+----
+== Definizione EmployeeDao
+* Definire una classe EmployeeDao
+** che contenga un metodo per estrarre la lista di ogetti `Employee`
+** che utilizzi il metodo `DBConfig.getConnection()`
+[source,java]
+----
+private final static String SELECT_EMPLOYEES =
+  "SELECT * FROM employees ORDER BY surname, name";
+//...
+public List<Employee> list() throws SQLException;
+//..
+}
+----
+
+== Definizione EmployeeDao^(2)^
+[[app-listing]]
+[source,java]
+.EmployeeDao.java
+include::{sourcedir}/tutorial/jdbc/EmployeeDao.java[lines=51..73]
+
+== Interfaccia CommandLine
+* definire una classe `CommandLine`
+* con un metodo main che utilizzi EmployeeDao per stampare la lista degli Employee
+* provare ad inserire in h2 una riga nella tabella employees
+* utilizzare la classe CommandLine per visualizzare la lista degli Employee
+
+== Interfaccia CommandLine^(2)^
+[[app-listing]]
+[source,java]
+.CommandLine.java
+----
+public class CommandLine {
+  private final EmployeeDao employeeDao;
+
+  public CommandLine() {
+    employeeDao = new EmployeeDao();
+  }
+
+include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=24..29]
+//..
+}
+----
+
+== Inserimento tramite Dao
+* nell'*EmployeeDao* definire un metodo
+[source,java]
+----
+public boolean persist(String name, String surname) throws SQLException;o
+----
+
+== Inserimento tramite Dao^(2)^
+[[app-listing]]
+[source,java]
+.EmployeeDao.java
+----
+include::{sourcedir}/tutorial/jdbc/EmployeeDao.java[lines=24;82..91]
+----
+
+== CommandLine: creazione menu
+
+[[app-listing]]
+[source,java]
+.CommandLine.java
+----
+include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=48..58]
+----
+
+== CommandLine: Scanneer
+[[app-listing]]
+[source,java]
+.CommandLine.java
+----
+import java.util.Scanner;
+//..
+include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=16..22]
+----
+
+== CommandLine: Scanneer^(2)^
+[[app-listing]]
+[source,java]
+.CommandLine.java
+----
+include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=60..77]
+----
+Create due metodi vuoti  *elencoDipendenti()* ed *inserisciDipendente()*
+
+== elencoDipendenti()
+
+[[app-listing]]
+[source,java]
+.CommandLine.java
+----
+public void elencoDipendenti() throws SQLException;
+----
+
+Spostare la funzionalità del metodo main nel elencoDipendenti
+
+== elencoDipendenti()^(2)^
+
+[[app-listing]]
+[source,java]
+.CommandLine.java
+----
+include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=24..29]
+----
+
+== inserisciDipendente()
+
+* scrivere un metodo inserisciDipendente()
+* che utilizzi il Dao..
+* che utilizzi System::out e Scanner::next per leggere nome e cognome
+[source,java]
+----
+System.out.print("Inserisci il cognome: ");
+String surname = scanner.next();
+----
+
+== inserisciDipendente()^(2)^
+[[app-listing]]
+[source,java]
+.CommandLine.java
+----
+include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=31..46]
+----
+
+== CommandLine: mettere tutto insieme
+[[app-listing]]
+[source,java]
+.CommandLine.java
+----
+//...
+include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=79..90]
+----
+
+== Conquer the CRUD
+
+* CRUD -> Create, Read, Update, Delete
+* implementare nel EmployeeDao ed in CommandLine i metodi per la modifica e cancellazione
+
+*That's all folk!*
+
