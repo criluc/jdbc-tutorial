@@ -7,6 +7,10 @@ Il progetto contiene:
  - le slide per un'esercizione sull'utilizzo di JDBC
  - il codice sorgente sia degli esempi mostrati nella teoria che nell'esercitazione
 
+Il progetto contiene inoltre:
+ - slide introduttive su Java
+ - slide introduttive su Maven
+ 
 Gli esempi sono basati sull'utlizzo di Java 8, Maven per la
 risoluzione delle dipendenze e h2 come database.
 
