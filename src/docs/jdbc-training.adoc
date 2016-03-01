@@ -67,8 +67,18 @@ Passi principali:
 .DBConfig.java
 ----
 import java.sql.*
+public class DBConfig {
 
-include::{sourcedir}/tutorial/jdbc/DBConfig.java[lines=14..25]
+  public final static String DB_URL = "jdbc:h2:~/corsojava";
+  public final static String DB_USER = "sa";
+  public final static String DB_PASSWORD = "";
+
+  public static Connection getConnection() throws SQLException {
+    return DriverManager.getConnection(
+        DBConfig.DB_URL, DBConfig.DB_USER, DBConfig.DB_PASSWORD);
+  }
+
+}
 ----
 
 == Creazione tabella Person
@@ -88,7 +98,21 @@ CREATE TABLE employees (
 .DBCreator.java
 ----
 import java.sql.*
-include::{sourcedir}/tutorial/jdbc/DBCreator.java[lines=15..22;25..35]
+public class DBCreator {
+  private final static String CREATE_DB_DDL =
+      "CREATE TABLE employees ("
+          + "id SERIAL NOT NULL PRIMARY KEY,"
+          + "name VARCHAR(255), surname VARCHAR(255))";
+
+  public static void main(String[] args) throws SQLException {
+    try (Connection con = DBConfig.getConnection()) {
+      try (Statement stmt = con.createStatement()) {
+        //Esegue la query
+        stmt.executeUpdate(CREATE_DB_DDL);
+      }
+    }
+  }
+}
 ----
 
 == Definizione Bean Employee
@@ -104,7 +128,18 @@ include::{sourcedir}/tutorial/jdbc/DBCreator.java[lines=15..22;25..35]
 ----
 import lombok.Data;
 import lombok.Builder;
-include::{sourcedir}/tutorial/jdbc/Employee.java[lines=13..24]
+@Data @Builder
+public class Employee {
+
+  private Integer id;
+  private String name;
+  private String surname;
+
+  @Override
+  public String toString() {
+    return String.format("%s %s (id=%d)", surname, name, id);
+  }
+}
 ----
 * Lombok (http://projectlombok.org)
 * @Data aggiunge getter,setter,equals,hashcode,..
@@ -144,7 +179,30 @@ public List<Employee> list() throws SQLException;
 [[app-listing]]
 [source,java]
 .EmployeeDao.java
-include::{sourcedir}/tutorial/jdbc/EmployeeDao.java[lines=51..73]
+  private final static String SELECT_EMPLOYEE = "SELECT * FROM employees WHERE id = ?";
+  public List<Employee> list() throws SQLException {
+    try(Connection con = DBConfig.getConnection()) {
+      PreparedStatement ps;
+      if (limit.isPresent()) {
+        ps = con.prepareStatement(SELECT_EMPLOYEES);
+        ps.setInt(1, limit.get());
+      } else {
+        ps = con.prepareStatement(SELECT_EMPLOYEES);
+      }
+      List<Employee> employees = new ArrayList<>();
+      try (ResultSet rs = ps.executeQuery()) {
+        while(rs.next()) {
+          employees.add(
+              Employee.builder()
+              .id(rs.getInt("id"))
+              .name(rs.getString("name"))
+              .surname(rs.getString("surname"))
+              .build());
+        }
+        return employees;
+      }
+    }
+  }
 
 == Interfaccia CommandLine
 * definire una classe `CommandLine`
@@ -164,7 +222,12 @@ public class CommandLine {
     employeeDao = new EmployeeDao();
   }
 
-include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=24..29]
+  public void elencoDipendenti() throws SQLException {
+    for(Employee emp : employeeDao.list(Optional.empty())) {
+      System.out.println(emp);
+    }
+    System.out.println("\n");
+  }
 //..
 }
 ----
@@ -181,7 +244,16 @@ public boolean persist(String name, String surname) throws SQLException;o
 [source,java]
 .EmployeeDao.java
 ----
-include::{sourcedir}/tutorial/jdbc/EmployeeDao.java[lines=24;82..91]
+  private final static String INSERT_EMPLOYEE = "INSERT INTO employees (name, surname) values (?, ?)";
+  public boolean persist(String name, String surname) throws SQLException {
+    try(Connection con = DBConfig.getConnection()) {
+      try(PreparedStatement ps =
+          con.prepareStatement(INSERT_EMPLOYEE)) {
+        ps.setString(1, name);
+        ps.setString(2, surname);
+        return ps.execute();
+      }
+    }
 ----
 
 == CommandLine: creazione menu
@@ -190,7 +262,17 @@ include::{sourcedir}/tutorial/jdbc/EmployeeDao.java[lines=24;82..91]
 [source,java]
 .CommandLine.java
 ----
-include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=48..58]
+  private void menu() {
+    System.out.println("= Anagrafica Dipendenti =");
+    System.out.println("== Menu Principale ==\n");
+    System.out.println("1) Elenco dipendenti");
+    System.out.println("2) Inserisci dipendente");
+    System.out.println("3) Modifica dipendente");
+    System.out.println("4) Elimina dipendente\n");
+
+    System.out.println("0) Termina applicazione\n\n");
+    System.out.println("Seleziona una operazione\n");
+  }
 ----
 
 == CommandLine: Scanneer
@@ -200,7 +282,13 @@ include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=48..58]
 ----
 import java.util.Scanner;
 //..
-include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=16..22]
+  private final Scanner scanner;
+  private final EmployeeDao employeeDao;
+
+  public CommandLine(Scanner scanner) {
+    this.scanner = scanner;
+    employeeDao = new EmployeeDao();
+  }
 ----
 
 == CommandLine: Scanneer^(2)^
@@ -208,9 +296,28 @@ include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=16..22]
 [source,java]
 .CommandLine.java
 ----
-include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=60..77]
+  public void main() throws SQLException {
+    String command = scanner.next();
+      switch (command) {
+        case "0":
+          System.out.println("Anagrafica terminata");
+          return;
+        case "1":
+          elencoDipendenti();
+          break;
+        case "2":
+          inserisciDipendente();
+          break;
+        default:
+          System.out.println(String.format("Operazione %s non riconosciuta", command));
+      }
+      System.out.println("Seleziona un'operazione (da 0 a 4)\n");
+      main();
+  }
 ----
+
 Create due metodi vuoti  *elencoDipendenti()* ed *inserisciDipendente()*
+
 
 == elencoDipendenti()
 
@@ -221,7 +328,7 @@ Create due metodi vuoti  *elencoDipendenti()* ed *inserisciDipendente()*
 public void elencoDipendenti() throws SQLException;
 ----
 
-Spostare la funzionalità del metodo main nel elencoDipendenti
+Implementare un metodo elencoDipendenti stampi la lista dei dipendenti sullo standard output
 
 == elencoDipendenti()^(2)^
 
@@ -229,7 +336,12 @@ Spostare la funzionalità del metodo main nel elencoDipendenti
 [source,java]
 .CommandLine.java
 ----
-include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=24..29]
+  public void elencoDipendenti() throws SQLException {
+    for(Employee emp : employeeDao.list(Optional.empty())) {
+      System.out.println(emp);
+    }
+    System.out.println("\n");
+  }
 ----
 
 == inserisciDipendente()
@@ -248,7 +360,22 @@ String surname = scanner.next();
 [source,java]
 .CommandLine.java
 ----
-include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=31..46]
+  public void inserisciDipendente() throws SQLException {
+
+    System.out.println("== Inserimento di una persona nel db ==");
+
+    System.out.print("Inserisci il cognome: ");
+    // get their input as a String
+    String surname = scanner.next();
+
+    System.out.print("Inserisci il nome: ");
+    // get their input as a String
+    String name = scanner.next();
+
+    employeeDao.persist(name, surname);
+
+    System.out.println(String.format("%s %s inserito in anagrafica\n", surname, name));
+  }
 ----
 
 == CommandLine: mettere tutto insieme
@@ -257,7 +384,18 @@ include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=31..46]
 .CommandLine.java
 ----
 //...
-include::{sourcedir}/tutorial/jdbc/CommandLine.java[lines=79..90]
+  public void start() throws SQLException {
+    menu();
+    main();
+  }
+
+  public static void main(String[] args) throws SQLException {
+    // create a scanner so we can read the command-line input
+    try (Scanner scanner = new Scanner(System.in)) {
+      CommandLine cl = new CommandLine(scanner);
+      cl.start();
+    }
+  }
 ----
 
 == Conquer the CRUD
