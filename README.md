@@ -18,7 +18,7 @@ risoluzione delle dipendenze e h2 come database.
 
 Le slide dell'esercitazione sono scritte con asciidoctor + revealjs.
 
-## Code Example
+## Codice di esempio
 
 La teoria e gli esercizi pratici guidano fino alla scrittura di un DAO
 con metodi tipo:
