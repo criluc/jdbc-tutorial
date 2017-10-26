@@ -4,7 +4,7 @@ Tutorial in Italiano su Java DataBase Connnectity (JDBC).
 Il progetto contiene:
  - le slide introduttive all'utilizzo di JDBC che contengono le basi
  della teoria generale e degli esempi pratici
- - le slide per un'esercizione sull'utilizzo di JDBC, disponibii nei formati:
+ - le slide per un'esercitazione sull'utilizzo di JDBC, disponibili nei formati:
   - revealjs dentro il file slide-esercizione.zip
   - asciidoctor nella file src/docs/jdbc-training.adoc
  - il codice sorgente sia degli esempi mostrati nella teoria che nell'esercitazione
